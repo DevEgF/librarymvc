@@ -1,95 +1,52 @@
 package repository
 
 import (
-	"errors"
 	"librarymvc/internal/loans/models"
-	"sync"
+	"gorm.io/gorm"
 )
 
 type LoanRepository struct {
-	loans  map[int64]*models.Loan
-	mu     sync.RWMutex
-	nextId int64
+	db *gorm.DB
 }
 
-func NewLoanRepository() models.LoanRepository {
+func NewLoanRepository(db *gorm.DB) models.LoanRepository {
 	return &LoanRepository{
-		loans:  make(map[int64]*models.Loan),
-		nextId: 1,
+		db: db,
 	}
 }
 
 func (l *LoanRepository) CreateLoan(loan *models.Loan) error {
-	l.mu.Lock()
-	defer l.mu.Unlock()
-
-	loan.ID = l.nextId
-	l.nextId++
-	l.loans[loan.ID] = loan
-	return nil
+	return l.db.Create(loan).Error
 }
 
 func (l *LoanRepository) UpdateLoan(loan *models.Loan) error {
-	l.mu.Lock()
-	defer l.mu.Unlock()
-
-	book, exists := l.loans[loan.ID]
-	if !exists {
-		return errors.New("book not found")
-	}
-
-	l.loans[loan.ID] = book
-	return nil
+	return l.db.Save(loan).Error
 }
 
 func (l *LoanRepository) ReturnBook(loanId int64) error {
-	l.mu.Lock()
-	defer l.mu.Unlock()
-
-	loan, exists := l.loans[loanId]
-	if !exists {
-		return errors.New("loan not found")
-	}
-
-	loan.Status = "returned"
-	return nil
+	return l.db.Model(&models.Loan{}).Where("id = ?", loanId).Update("status", "returned").Error
 }
 
 func (l *LoanRepository) GetLoan(id int64) (*models.Loan, error) {
-	l.mu.Lock()
-	defer l.mu.Unlock()
-
-	loan, exists := l.loans[id]
-	if !exists {
-		return nil, errors.New("loan not found")
+	var loan models.Loan
+	if err := l.db.First(&loan, id).Error; err != nil {
+		return nil, err
 	}
-
-	return loan, nil
+	return &loan, nil
 }
 
 func (l *LoanRepository) GetActiveUserLoans(userId int64) ([]*models.Loan, error) {
-	l.mu.Lock()
-	defer l.mu.Unlock()
-
-	var activeLoans []*models.Loan
-
-	for _, loan := range l.loans {
-		if loan.UserId == userId && loan.Status == "active" {
-			activeLoans = append(activeLoans, loan)
-		}
+	var loans []*models.Loan
+	if err := l.db.Where("user_id = ? AND status = ?", userId, "active").Find(&loans).Error; err != nil {
+		return nil, err
 	}
-
-	return activeLoans, nil
+	return loans, nil
 }
 
 func (l *LoanRepository) GetAllLoans() ([]*models.Loan, error) {
-	l.mu.Lock()
-	defer l.mu.Unlock()
-
-	loan := make([]*models.Loan, 0, len(l.loans))
-	for _, v := range l.loans {
-		loan = append(loan, v)
+	var loans []*models.Loan
+	if err := l.db.Find(&loans).Error; err != nil {
+		return nil, err
 	}
-
-	return loan, nil
+	return loans, nil
 }

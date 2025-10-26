@@ -1,80 +1,44 @@
 package repository
 
 import (
-	"errors"
 	"librarymvc/internal/users/models"
-	"sync"
+	"gorm.io/gorm"
 )
 
 type UserRepository struct {
-	user   map[int64]*models.User
-	mu     sync.RWMutex
-	nextId int64
+	db *gorm.DB
 }
 
-func NewUserRepository() models.UserRepository {
+func NewUserRepository(db *gorm.DB) models.UserRepository {
 	return &UserRepository{
-		user:   make(map[int64]*models.User),
-		nextId: 1,
+		db: db,
 	}
 }
 
 func (u *UserRepository) CreateUser(user *models.User) error {
-	u.mu.Lock()
-	defer u.mu.Unlock()
-
-	user.ID = u.nextId
-	u.nextId++
-	u.user[user.ID] = user
-	return nil
+	return u.db.Create(user).Error
 }
 
 func (u *UserRepository) GetUser(id int64) (*models.User, error) {
-	u.mu.Lock()
-	defer u.mu.Unlock()
-
-	user, exists := u.user[id]
-	if !exists {
-		return nil, errors.New("user not found")
+	var user models.User
+	if err := u.db.First(&user, id).Error; err != nil {
+		return nil, err
 	}
-
-	return user, nil
+	return &user, nil
 }
 
 func (u *UserRepository) GetAllUsers() ([]*models.User, error) {
-	u.mu.Lock()
-	defer u.mu.Unlock()
-
-	user := make([]*models.User, 0, len(u.user))
-	for _, v := range u.user {
-		user = append(user, v)
+	var users []*models.User
+	if err := u.db.Find(&users).Error; err != nil {
+		return nil, err
 	}
-
-	return user, nil
+	return users, nil
 }
 
 func (u *UserRepository) UpdateUser(id int64, user *models.User) error {
-	u.mu.Lock()
-	defer u.mu.Unlock()
-
-	user, exists := u.user[id]
-	if !exists {
-		return errors.New("user not found")
-	}
-
-	u.user[user.ID] = user
-	return nil
+	return u.db.Model(&models.User{}).Where("id = ?", id).Updates(user).Error
 }
 
 func (u *UserRepository) DeleteUser(id int64) error {
-	u.mu.Lock()
-	defer u.mu.Unlock()
-
-	_, exists := u.user[id]
-	if !exists {
-		return errors.New("user not found")
-	}
-
-	delete(u.user, id)
-	return nil
+	return u.db.Delete(&models.User{}, id).Error
 }

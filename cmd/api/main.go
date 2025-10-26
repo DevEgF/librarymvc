@@ -1,6 +1,10 @@
 package main
 
 import (
+	"librarymvc/internal/database"
+	bookModels "librarymvc/internal/books/models"
+	loanModels "librarymvc/internal/loans/models"
+	userModels "librarymvc/internal/users/models"
 	bookRepository "librarymvc/internal/books/repository"
 	loanRepository "librarymvc/internal/loans/repository"
 	userRepository "librarymvc/internal/users/repository"
@@ -18,11 +22,19 @@ import (
 )
 
 func main() {
+	if err := database.Connect(); err != nil {
+		log.Fatal("failed to connect database: ", err)
+	}
+
+	if err := database.DB.AutoMigrate(&bookModels.Book{}, &loanModels.Loan{}, &userModels.User{}); err != nil {
+		log.Fatal("failed to migrate database: ", err)
+	}
+
 	router := gin.Default()
 
-	usersRepository := userRepository.NewUserRepository()
-	booksRepository := bookRepository.NewBookRepository()
-	loansRepository := loanRepository.NewLoanRepository()
+	usersRepository := userRepository.NewUserRepository(database.DB)
+	booksRepository := bookRepository.NewBookRepository(database.DB)
+	loansRepository := loanRepository.NewLoanRepository(database.DB)
 
 	usersService := userService.NewUserService(usersRepository)
 	booksService := bookService.NewBookService(booksRepository)
