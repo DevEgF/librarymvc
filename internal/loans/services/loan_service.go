@@ -103,10 +103,10 @@ func (l LoanService) GetLoan(id int64) (*models.Loan, error) {
 	return l.loanRepo.GetLoan(id)
 }
 
-func (l LoanService) GetUserLoans(userId int64) ([]models.Loan, error) {
+func (l LoanService) GetUserLoans(userId int64) ([]*models.Loan, error) {
 	return l.loanRepo.GetActiveUserLoans(userId)
 }
 
-func (l LoanService) GetAllLoans() ([]models.Loan, error) {
+func (l LoanService) GetAllLoans() ([]*models.Loan, error) {
 	return l.loanRepo.GetAllLoans()
 }

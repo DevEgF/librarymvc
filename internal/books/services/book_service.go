@@ -33,7 +33,7 @@ func (b BookService) GetBook(id int64) (*models.Book, error) {
 	return b.bookRepository.GetBook(id)
 }
 
-func (b BookService) GetAllBooks() (*[]models.Book, error) {
+func (b BookService) GetAllBooks() ([]*models.Book, error) {
 	return b.bookRepository.GetAllBooks()
 }
 
