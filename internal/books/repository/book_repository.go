@@ -1,80 +1,44 @@
 package repository
 
 import (
-	"errors"
 	"librarymvc/internal/books/models"
-	"sync"
+	"gorm.io/gorm"
 )
 
 type BookRepository struct {
-	books  map[int64]*models.Book
-	mu     sync.RWMutex
-	nextId int64
+	db *gorm.DB
 }
 
-func NewBookRepository() models.BookRepository {
+func NewBookRepository(db *gorm.DB) models.BookRepository {
 	return &BookRepository{
-		books:  make(map[int64]*models.Book),
-		nextId: 1,
+		db: db,
 	}
 }
 
 func (b *BookRepository) CreateBook(book *models.Book) error {
-	b.mu.Lock()
-	defer b.mu.Unlock()
-
-	book.ID = b.nextId
-	b.nextId++
-	b.books[book.ID] = book
-	return nil
+	return b.db.Create(book).Error
 }
 
 func (b *BookRepository) GetBook(id int64) (*models.Book, error) {
-	b.mu.Lock()
-	defer b.mu.Unlock()
-
-	book, exists := b.books[id]
-	if !exists {
-		return nil, errors.New("book not found")
+	var book models.Book
+	if err := b.db.First(&book, id).Error; err != nil {
+		return nil, err
 	}
-
-	return book, nil
+	return &book, nil
 }
 
 func (b *BookRepository) GetAllBooks() ([]*models.Book, error) {
-	b.mu.Lock()
-	defer b.mu.Unlock()
-
-	books := make([]*models.Book, 0, len(b.books))
-	for _, v := range b.books {
-		books = append(books, v)
+	var books []*models.Book
+	if err := b.db.Find(&books).Error; err != nil {
+		return nil, err
 	}
-
 	return books, nil
 }
 
 func (b *BookRepository) UpdateBook(id int64, book *models.Book) error {
-	b.mu.Lock()
-	defer b.mu.Unlock()
-
-	book, exists := b.books[id]
-	if !exists {
-		return errors.New("book not found")
-	}
-
-	b.books[book.ID] = book
-	return nil
+	return b.db.Model(&models.Book{}).Where("id = ?", id).Updates(book).Error
 }
 
 func (b *BookRepository) DeleteBook(id int64) error {
-	b.mu.Lock()
-	defer b.mu.Unlock()
-
-	_, exists := b.books[id]
-	if !exists {
-		return errors.New("book not found")
-	}
-
-	delete(b.books, id)
-	return nil
+	return b.db.Delete(&models.Book{}, id).Error
 }
