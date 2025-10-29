@@ -35,7 +35,7 @@ func main() {
 	usersController := userControllers.NewUserController(usersService)
 	loansController := loanControllers.NewLoanController(loansService)
 
-	webController := webControllers.NewWebController(booksService, *usersService, *loansService)
+	webController := webControllers.NewWebController(booksService, usersService, loansService)
 
 	router := gin.Default()
 	config := cors.DefaultConfig()

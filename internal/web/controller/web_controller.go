@@ -2,9 +2,9 @@ package controller
 
 import (
 	"html/template"
-	bookService "librarymvc/internal/books/services"
-	loanService "librarymvc/internal/loans/services"
-	userService "librarymvc/internal/users/services"
+	bookService "librarymvc/internal/books/models"
+	loanService "librarymvc/internal/loans/models"
+	userService "librarymvc/internal/users/models"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
